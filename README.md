@@ -1,56 +1,71 @@
 # dissmodel-ca
 
-Cellular Automata (CA) extension for `dissmodel`.
+**Cellular Automata (CA) extension for `dissmodel`.**
 
-This library provides several cellular automata models implemented using the `dissmodel` engine, including both vector (GeoDataFrame-based) and raster (NumPy-based) versions.
+This library provides a collection of cellular automata models implemented using the `dissmodel` engine. It showcases the power of the framework's dual-substrate architecture, offering both vector (GeoDataFrame) and raster (NumPy) versions of classic and research models.
 
-## Features
+## 🌟 Features
 
-- **Classic Models:** Game of Life, Forest Fire, Anneal, Snow, etc.
-- **Dual Engine:** Support for both vector and raster backends.
-- **Streamlit Apps:** Interactive explorers for all implemented models.
-- **CLI Tools:** Quick run and visualization of simulations.
+- **Classic & Research Models:** Game of Life, Forest Fire (Probabilistic), Anneal, Snow, and more.
+- **Dual Substrate:** Seamlessly switch between vector precision and raster performance.
+- **Interactive Dashboards:** Built-in Streamlit apps for real-time parameter exploration.
+- **Experiment Tracking:** Professional-grade executors with built-in telemetry and JSON reporting.
 
-## Installation
+## ⚙️ Installation
 
 ```bash
 pip install .
 ```
 
-## Usage
+## 🚀 Usage
 
-### Using the Models
-
-```python
-from dissmodel_ca.models import GameOfLife
-from dissmodel.geo import vector_grid
-from dissmodel.core import Environment
-
-# Setup environment and grid
-env = Environment(end_time=10)
-gdf = vector_grid(dimension=(20, 20))
-
-# Initialize and run model
-model = GameOfLife(gdf=gdf)
-model.initialize()
-env.run()
-```
-
-### Running Streamlit Apps
-
-```bash
-streamlit run src/dissmodel_ca/streamlit/ca_all.py
-```
-
-### CLI
+### 1. Simple Script (Quick Start)
+For a quick run with default parameters and visual output:
 
 ```bash
 python -m dissmodel_ca.cli.ca_game_of_life
 ```
 
-## Structure
+### 2. Model Executor (Production/Research)
+Use the **Executor** for automated runs, cloud integration, and full experiment tracking (generates SHA256 checksums and profiling reports):
 
-- `src/dissmodel_ca/models/`: Core CA model implementations.
-- `src/dissmodel_ca/streamlit/`: Streamlit web applications.
-- `src/dissmodel_ca/cli/`: Command-line interfaces.
-- `notebooks/`: Example Jupyter notebooks.
+```bash
+python src/dissmodel_ca/executor/ca_gol_vector_executor.py run \
+  --input "synthetic" \
+  --param grid_size=30 \
+  --param end_time=50
+```
+
+### 3. Interactive Streamlit App
+Explore all models via a reactive web interface:
+
+```bash
+streamlit run src/dissmodel_ca/streamlit/ca_all.py
+```
+
+---
+
+## 📂 Repository Structure
+
+- **`dissmodel_ca/models/`**: Core CA implementations (the "Science" layer).
+- **`dissmodel_ca/executor/`**: Standardized executors for experiment tracking and reproducibility.
+- **`dissmodel_ca/cli/`**: Simplified, self-contained scripts for quick testing.
+- **`dissmodel_ca/streamlit/`**: Reactive UI components and apps.
+
+---
+
+## 🛠️ Included Models
+
+| Model | Substrate | Description |
+|:---|:---|:---|
+| `GameOfLife` | Vector / Raster | Classic Conway's simulation. |
+| `FireModel` | Vector / Raster | Forest fire spread with probabilistic regrowth. |
+| `Snow` | Vector | Snowfall accumulation and gravity dynamics. |
+| `Growth` | Vector | Stochastic radial growth. |
+| `Anneal` | Vector | Binary system relaxation via majority-vote rule. |
+
+---
+
+## ⚖️ License
+
+MIT © 2026 [LambdaGeo — UFMA](https://github.com/LambdaGeo)
