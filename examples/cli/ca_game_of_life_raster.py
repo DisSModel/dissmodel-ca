@@ -7,8 +7,8 @@ Same rules as the vector version, fully vectorized over NumPy arrays.
 
 Usage
 -----
-    python dissmodel_ca/cli/ca_game_of_life_raster.py
-    RASTER_MAP_INTERACTIVE=1 python dissmodel_ca/cli/ca_game_of_life_raster.py
+    python examples/cli/ca_game_of_life_raster.py
+    RASTER_MAP_INTERACTIVE=1 python examples/cli/ca_game_of_life_raster.py
 """
 from __future__ import annotations
 

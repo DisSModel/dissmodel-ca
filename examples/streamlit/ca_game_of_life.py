@@ -11,7 +11,7 @@ Rules
 
 Usage
 -----
-    streamlit run dissmodel_ca/streamlit/ca_game_of_life.py
+    streamlit run examples/streamlit/ca_game_of_life.py
 """
 from __future__ import annotations
 
