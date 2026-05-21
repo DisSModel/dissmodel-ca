@@ -9,7 +9,7 @@ This library provides a collection of cellular automata models implemented using
 - **Classic & Research Models:** Game of Life, Forest Fire (Probabilistic), Anneal, Snow, and more.
 - **Dual Substrate:** Seamlessly switch between vector precision and raster performance.
 - **Interactive Dashboards:** Built-in Streamlit apps for real-time parameter exploration.
-- **Experiment Tracking:** Professional-grade executors with built-in telemetry and JSON reporting.
+- **Jupyter Notebooks:** 15+ educational notebooks with step-by-step scientific explanations.
 
 ## ⚙️ Installation
 
@@ -23,34 +23,31 @@ pip install .
 For a quick run with default parameters and visual output:
 
 ```bash
-python -m dissmodel_ca.cli.ca_game_of_life
+python examples/cli/ca_game_of_life.py
 ```
 
-### 2. Model Executor (Production/Research)
-Use the **Executor** for automated runs, cloud integration, and full experiment tracking (generates SHA256 checksums and profiling reports):
-
-```bash
-python src/dissmodel_ca/executor/ca_gol_vector_executor.py run \
-  --input "synthetic" \
-  --param grid_size=30 \
-  --param end_time=50
-```
-
-### 3. Interactive Streamlit App
+### 2. Interactive Streamlit App
 Explore all models via a reactive web interface:
 
 ```bash
-streamlit run src/dissmodel_ca/streamlit/ca_all.py
+streamlit run examples/streamlit/ca_all.py
+```
+
+### 3. Jupyter Notebooks (Didactic)
+The best way to learn about each model is through our educational notebooks in Portuguese:
+
+```bash
+jupyter lab examples/notebooks/ca_game_of_life.ipynb
 ```
 
 ---
 
 ## 📂 Repository Structure
 
-- **`dissmodel_ca/models/`**: Core CA implementations (the "Science" layer).
-- **`dissmodel_ca/executor/`**: Standardized executors for experiment tracking and reproducibility.
-- **`dissmodel_ca/cli/`**: Simplified, self-contained scripts for quick testing.
-- **`dissmodel_ca/streamlit/`**: Reactive UI components and apps.
+- **`src/dissmodel_ca/models/`**: Core CA implementations (the "Science" layer).
+- **`examples/notebooks/`**: 15+ didactic notebooks (Intro, Concepts, Rules, Execution).
+- **`examples/cli/`**: Simplified, self-contained scripts for quick testing.
+- **`examples/streamlit/`**: Reactive UI components and apps.
 
 ---
 
@@ -63,9 +60,6 @@ streamlit run src/dissmodel_ca/streamlit/ca_all.py
 | `Snow` | Vector | Snowfall accumulation and gravity dynamics. |
 | `Growth` | Vector | Stochastic radial growth. |
 | `Anneal` | Vector | Binary system relaxation via majority-vote rule. |
-
----
-
-## ⚖️ License
-
-MIT © 2026 [LambdaGeo — UFMA](https://github.com/LambdaGeo)
+| `Excitable` | Vector | Excitable medium waves (spiral/ring patterns). |
+| `Parasit` | Vector | Host-parasit spatial dynamics. |
+| `Interspecific` | Vector | Grass species competition model. |
