@@ -52,7 +52,7 @@ st.sidebar.title("Parameters")
 
 model_name = st.sidebar.selectbox("Model", list(model_classes.keys()))
 steps      = st.sidebar.slider("Simulation steps", min_value=1, max_value=1000, value=50)
-grid_size  = st.sidebar.slider("Grid size", min_value=5, max_value=100, value=20)
+grid_size  = st.sidebar.slider("Grid size", min_value=5, max_value=500, value=20)
 cmap_name  = st.sidebar.selectbox(
     "Colormap",
     ["tab10", "viridis", "plasma", "Greens", "Reds", "Blues", "coolwarm"],
