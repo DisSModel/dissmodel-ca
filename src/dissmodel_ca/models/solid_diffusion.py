@@ -52,7 +52,7 @@ def _queen_neighbors(idx: str, dim: int) -> list[str]:
                 continue
             nx, ny = x + dx, y + dy
             if 0 <= nx < dim and 0 <= ny < dim:
-                neighbors.append(f"{ny}-{nx}")
+                neighbors.append(f"{nx}-{ny}")
     return neighbors
 
 
@@ -133,10 +133,10 @@ class SolidDiffusion(CellularAutomaton):
         middle = self.dim // 2
 
         def assign(idx: str) -> int:
-            x, _ = parse_idx(idx)
-            if x < middle:
+            _, y = parse_idx(idx)
+            if y < middle:
                 return int(SolidDiffusionState.ATOM1)
-            if x > middle:
+            if y > middle:
                 return int(SolidDiffusionState.ATOM2)
             return int(SolidDiffusionState.VACANCY)
 

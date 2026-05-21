@@ -155,12 +155,14 @@ class InterspecificCompetition(CellularAutomaton):
             ]
             return
 
-        band = _INITIAL_BANDS[self.displacement]
+        # Reverse band order: TerraME y=0 is at the bottom (increasing upward),
+        # DisSModel renders y=0 at the top — inverting the list corrects the flip.
+        band = list(reversed(_INITIAL_BANDS[self.displacement]))
 
         def assign(idx: str) -> int:
-            _, y = parse_idx(idx)
+            x, _ = parse_idx(idx)
             for i, threshold in enumerate(_BAND_THRESHOLDS):
-                if y <= threshold:
+                if x <= threshold:
                     return int(band[i])
             return int(band[-1])
 
