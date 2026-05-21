@@ -25,4 +25,5 @@ dev = [
 ]
 
 [tool.setuptools]
+package-dir = {"" = "src"}
 packages = ["dissmodel_ca", "dissmodel_ca.models"]
