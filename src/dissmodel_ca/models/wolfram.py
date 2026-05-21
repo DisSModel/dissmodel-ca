@@ -36,12 +36,23 @@ class Wolfram(CellularAutomaton):
     At each step *t*, row *t* is filled from row *t − 1* using a
     3-cell neighborhood and the selected rule table.
 
-    The grid must be created with::
+    Grid dimensions are independent:
 
-        vector_grid(dimension=(2 * final_time + 1, final_time + 1))
+    - ``ydim = final_time + 1`` (one row per generation, including row 0).
+    - ``xdim`` defaults to ``2 * final_time + 1`` (classic pyramid shape),
+      but can be set independently for square or custom grids.
 
-    where ``dimension=(xdim, ydim)`` and ``xdim`` is the number of
-    columns, ``ydim`` the number of rows (generations).
+    For a **50×50 grid** use ``xdim=50, final_time=49``::
+
+        gdf = vector_grid(dimension=(50, 50), resolution=1, attrs={"state": 0})
+        env = Environment(end_time=49)
+        wolfram = Wolfram(gdf=gdf, xdim=50, final_time=49)
+
+    For the **classic pyramid** omit ``xdim``::
+
+        gdf = vector_grid(dimension=(111, 56), resolution=1, attrs={"state": 0})
+        env = Environment(end_time=55)
+        wolfram = Wolfram(gdf=gdf, final_time=55)
 
     Based on: http://mathworld.wolfram.com/ElementaryCellularAutomaton.html.
 
@@ -49,7 +60,7 @@ class Wolfram(CellularAutomaton):
     ----------
     gdf : geopandas.GeoDataFrame
         GeoDataFrame with geometries and a ``state`` attribute.
-        Must match the required dimensions described above.
+        Must have ``xdim`` columns and ``final_time + 1`` rows.
     **kwargs :
         Extra keyword arguments forwarded to
         :class:`~dissmodel.geo.CellularAutomaton`.
@@ -59,28 +70,15 @@ class Wolfram(CellularAutomaton):
     Because Wolfram CAs advance row by row (not cell by cell),
     :meth:`execute` is fully overridden. :meth:`rule` is not used.
 
-    The neighborhood wraps horizontally: the leftmost and rightmost
+    Horizontal boundaries wrap (toroidal): the leftmost and rightmost
     cells in each row treat the opposite edge as their neighbor.
-
-    Examples
-    --------
-    >>> from dissmodel.geo import vector_grid
-    >>> from dissmodel.core import Environment
-    >>> final_time = 55
-    >>> gdf = vector_grid(
-    ...     dimension=(2 * final_time + 1, final_time + 1),
-    ...     resolution=1,
-    ...     attrs={"state": 0},
-    ... )
-    >>> env = Environment(end_time=final_time)
-    >>> wolfram = Wolfram(gdf=gdf, rule_number=90, final_time=final_time)
-    >>> wolfram.initialize()
     """
 
     def setup(
         self,
         rule_number: int = 90,
         final_time: int = 55,
+        xdim: int | None = None,
     ) -> None:
         """
         Configure the model.
@@ -91,8 +89,12 @@ class Wolfram(CellularAutomaton):
             Wolfram elementary rule number from 0 to 255, by default 90.
             Rule 90 produces a Sierpiński triangle pattern.
         final_time : int, optional
-            Number of generations (rows). Must match the ``ydim`` used
-            when creating the GeoDataFrame, by default 55.
+            Number of generations to simulate. Determines the number of
+            rows (``ydim = final_time + 1``). By default 55.
+        xdim : int or None, optional
+            Number of columns. If ``None`` (default), uses
+            ``2 * final_time + 1`` (classic symmetric pyramid).
+            Set explicitly for square grids, e.g. ``xdim=50``.
 
         Raises
         ------
@@ -103,19 +105,18 @@ class Wolfram(CellularAutomaton):
             raise ValueError(f"rule_number must be between 0 and 255, got {rule_number}.")
         self.rule_number = rule_number
         self.final_time  = final_time
-        self.xdim        = 2 * final_time + 1  # number of columns
+        self.xdim        = xdim if xdim is not None else 2 * final_time + 1
         self._rule_table = _build_rule_table(rule_number)
 
     def initialize(self) -> None:
         """
         Set a single alive cell at the center of row 0.
 
-        All other cells start as dead (0). The center column is
-        ``floor((xdim + 1) / 2 - 1)`` — the same formula used in
-        the original TerraME implementation.
+        All other cells start as dead (0). The seed is placed at the
+        middle column: ``(xdim - 1) // 2``.
         """
         self.gdf[self.state_attr] = 0
-        mid = (self.xdim + 1) // 2 - 1
+        mid = (self.xdim - 1) // 2
         self.gdf.loc[f"0-{mid}", self.state_attr] = 1
 
     def execute(self) -> None:
@@ -126,12 +127,14 @@ class Wolfram(CellularAutomaton):
         by applying the rule table to each 3-cell neighborhood.
         Horizontal boundaries wrap (toroidal).
 
-        Steps t=0 and t > final_time are skipped: row 0 is already
-        set by :meth:`initialize`, and no rows exist beyond the grid.
+        Steps ``t == 0`` and ``t > final_time`` are skipped: row 0 is
+        already set by :meth:`initialize`, and no rows exist beyond
+        the grid height.
         """
         t = int(self.env.now())
         if t == 0 or t > self.final_time:
             return
+
         yc = t - 1  # source row (previous generation)
         yn = t      # destination row (current generation)
 

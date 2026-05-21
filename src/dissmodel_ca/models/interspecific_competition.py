@@ -59,8 +59,8 @@ _PROBS: dict[Species, dict[Species, float]] = {
     },
 }
 
-# Band thresholds (y ≤ threshold → assigned species for that band).
-# Matches TerraME initial_location = {7, 15, 23, 31, 39} on a 40×40 grid.
+# Band thresholds (y <= threshold → assigned species for that band).
+# Matches TerraME initial_location = {7, 15, 23, 31, 39} on a 40x40 grid.
 _BAND_THRESHOLDS: list[int] = [7, 15, 23, 31, 39]
 
 # Initial species order per model variant (5 horizontal bands, bottom → top).
@@ -92,30 +92,22 @@ class InterspecificCompetition(CellularAutomaton):
     Parameters
     ----------
     gdf : geopandas.GeoDataFrame
-        GeoDataFrame with geometries and a ``species`` attribute.
+        GeoDataFrame with geometries and a ``state`` attribute.
         Should be created with ``dimension=(40, 40)`` to match the
         original model's band proportions.
     **kwargs :
         Extra keyword arguments forwarded to
         :class:`~dissmodel.geo.CellularAutomaton`.
 
-    Notes
-    -----
-    The state attribute for this model is ``"species"`` (not the
-    default ``"state"``), matching the TerraME original.
-
     Examples
     --------
     >>> from dissmodel.geo import vector_grid
     >>> from dissmodel.core import Environment
-    >>> gdf = vector_grid(dimension=(40, 40), resolution=1, attrs={"species": 0})
+    >>> gdf = vector_grid(dimension=(40, 40), resolution=1, attrs={"state": 0})
     >>> env = Environment(end_time=200)
     >>> ic = InterspecificCompetition(gdf=gdf, displacement="ModelA")
     >>> ic.initialize()
     """
-
-    #: State attribute name (overrides the default ``"state"``).
-    state_attr: str = "species"
 
     def setup(
         self,
@@ -153,12 +145,12 @@ class InterspecificCompetition(CellularAutomaton):
         - ``"ModelA"`` / ``"ModelB"`` / ``"ModelC"``: five horizontal bands
           ordered from bottom (y=0) to top (y=39) according to the
           variant's species sequence and the thresholds
-          y ≤ {7, 15, 23, 31, 39}.
+          y <= {7, 15, 23, 31, 39}.
         - ``"Random"``: each cell receives a uniformly random species.
         """
         if self.displacement == "Random":
             all_species = list(Species)
-            self.gdf["species"] = [
+            self.gdf["state"] = [
                 int(self._rng.choice(all_species)) for _ in range(len(self.gdf))
             ]
             return
@@ -172,7 +164,7 @@ class InterspecificCompetition(CellularAutomaton):
                     return int(band[i])
             return int(band[-1])
 
-        self.gdf["species"] = self.gdf.index.map(assign)
+        self.gdf["state"] = self.gdf.index.map(assign)
 
     def rule(self, idx: Any) -> int:
         """
@@ -213,7 +205,7 @@ class InterspecificCompetition(CellularAutomaton):
         # Self-retention: probability the current species holds its cell
         probs[current] = probs.get(current, 0.0) + (1.0 - total_invasion)
 
-        # Weighted random sample from the distribution
+        # Weighted random sample
         r = self._rng.random()
         cumsum = 0.0
         for species, p in probs.items():
