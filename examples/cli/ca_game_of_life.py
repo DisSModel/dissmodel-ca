@@ -12,7 +12,7 @@ Rules
 
 Usage
 -----
-    python dissmodel_ca/cli/ca_game_of_life.py
+    python examples/cli/ca_game_of_life.py
 """
 from __future__ import annotations
 

@@ -13,7 +13,7 @@ This is possible because all models follow the same conventions:
 
 Usage
 -----
-    streamlit run dissmodel_ca/streamlit/ca_all.py
+    streamlit run examples/streamlit/ca_all.py
 """
 from __future__ import annotations
 

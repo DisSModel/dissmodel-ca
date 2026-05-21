@@ -14,7 +14,7 @@ States
 
 Usage
 -----
-    streamlit run dissmodel_ca/streamlit/ca_fire_model_prob.py
+    streamlit run examples/streamlit/ca_fire_model_prob.py
 """
 from __future__ import annotations
 

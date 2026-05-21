@@ -15,7 +15,7 @@ A good rule of thumb: steps > grid_size.
 
 Usage
 -----
-    streamlit run dissmodel_ca/streamlit/ca_snow.py
+    streamlit run examples/streamlit/ca_snow.py
 """
 from __future__ import annotations
 
