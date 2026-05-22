@@ -4,6 +4,11 @@
 
 Developed by the **LambdaGeo** research group at the **Federal University of Maranhão (UFMA)**, DisSModel-CA is part of a broader effort to provide modern, accessible tools for spatial simulation.
 
+
+!!! tip "Try it Now: Interactive Demo"
+    You can explore all the models in this package right in your browser! Visit our live demo on Hugging Face Spaces:
+    [**dissmodel-ca-demo**](https://huggingface.co/spaces/profsergiocosta/dissmodel-ca-demo)
+
 ## Origins and Inspiration
 
 The framework is heavily inspired by **TerraME** (Terra Modeling Environment). While TerraME historically relied on the TerraLib/Lua stack, DisSModel-CA transitions this power to the modern Python ecosystem:
