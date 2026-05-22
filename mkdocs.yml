@@ -1,0 +1,29 @@
+site_name: DisSModel-CA Documentation
+theme:
+  name: material
+  palette:
+    primary: teal
+    accent: cyan
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+nav:
+  - Introduction: index.md
+  - Theory of Cellular Automata: theory.md
+  - DisSModel-CA Architecture: architecture.md
+  - Model Examples: models.md
+  - Model References: reference.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.magiclink
