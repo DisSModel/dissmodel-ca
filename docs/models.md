@@ -1,82 +1,145 @@
-# Model Examples
+# Complete Simulation Examples
 
-In this section, we analyze how two classic models are implemented using the DisSModel-CA framework.
-
-## 1. Conway's Game of Life
-
-The Game of Life is the quintessential CA. It operates on a 2D grid where each cell is either **Alive (1)** or **Dead (0)**.
-
-### The Rules
-- **Survival**: A live cell with 2 or 3 live neighbors stays alive.
-- **Death**: A live cell with < 2 (isolation) or > 3 (overpopulation) neighbors dies.
-- **Birth**: A dead cell with exactly 3 live neighbors becomes alive.
-
-### Implementation Logic
-
-```python
-class GameOfLife(CellularAutomaton):
-    def setup(self) -> None:
-        # We use Queen strategy for a Moore Neighborhood (8 neighbors)
-        self.create_neighborhood(strategy=Queen, use_index=True)
-
-    def rule(self, idx: Any) -> int:
-        # 1. Get current state of the cell
-        state = self.gdf.loc[idx, self.state_attr]
-        
-        # 2. Count live neighbors
-        live_neighbors = (self.neighbor_values(idx, self.state_attr)).sum()
-
-        # 3. Apply Conway's logic
-        if state == 1:
-            return 1 if 2 <= live_neighbors <= 3 else 0
-        return 1 if live_neighbors == 3 else 0
-```
-
-!!! info "Step-by-Step"
-    1.  **`setup`**: Defines that each cell looks at its 8 surrounding neighbors.
-    2.  **`self.neighbor_values(idx, ...)`**: This is a powerful helper that automatically finds all neighbors of `idx` and returns their current values as a NumPy array.
-    3.  **Summing**: Since "Alive" is represented by `1`, summing the neighbor values gives us the exact count of live neighbors.
+This section provides comprehensive, step-by-step guides for running simulations in DisSModel-CA. These examples are designed to help undergraduate students understand the full pipeline: from setting up the cellular space to visualizing the results with appropriate color maps.
 
 ---
 
-## 2. Fire in the Forest Model
+## 1. Ecological Competition: Interspecific Species
 
-This model simulates the spread of fire through a forest. It uses 3 discrete states.
+This example replicates the model by Silvertown et al. (1992). It simulates how five species of grass compete for space. We will use a **Vector** approach and a specialized visualization.
 
-### The States
-*   **FOREST (0)**: Green trees, ready to burn.
-*   **BURNING (1)**: Currently on fire.
-*   **BURNED (2)**: Ashes, cannot burn again.
-
-### The Rules
-1.  A **Burning** cell always becomes **Burned** in the next step.
-2.  A **Forest** cell becomes **Burning** if at least one of its neighbors is burning.
-3.  A **Burned** cell remains **Burned**.
-
-### Implementation Logic
+### Step 1: Create the Cellular Space
+We create a 40x40 grid, which is the standard size used in the original research to allow for distinct horizontal bands.
 
 ```python
-class FireModel(CellularAutomaton):
-    def setup(self, initial_fire_density: float = 0.05) -> None:
-        # We use Rook strategy for a Von Neumann Neighborhood (4 neighbors)
-        self.create_neighborhood(strategy=Rook, use_index=True)
+from dissmodel.geo import vector_grid
 
-    def rule(self, idx: Any) -> int:
-        state = self.gdf.loc[idx, self.state_attr]
-
-        # Rule 1: Burning becomes Burned
-        if state == FireState.BURNING:
-            return FireState.BURNED
-
-        # Rule 2: Forest catches fire if a neighbor is burning
-        if state == FireState.FOREST:
-            # Check if any neighbor is in the BURNING state
-            if (self.neighbor_values(idx, self.state_attr) == FireState.BURNING).any():
-                return FireState.BURNING
-
-        # Rule 3: Otherwise, stay the same (Forest stays Forest, Burned stays Burned)
-        return state
+# Create a 40x40 vector grid.
+# The 'state' attribute will hold the species ID (0-4).
+grid = vector_grid(dimension=(40, 40), resolution=1, attrs={"state": 0})
 ```
 
-!!! warning "Neighborhood Difference"
-    Notice that while Game of Life uses the `Queen` neighborhood (8 neighbors), the Fire Model typically uses `Rook` (4 neighbors). DisSModel-CA makes it trivial to swap these behaviors by just changing the strategy in the `setup()` method.
+### Step 2: Configure the Environment
+The environment controls the time-stepping logic.
+
+```python
+from dissmodel.core import Environment
+
+# We run for 200 steps to allow patterns to emerge.
+env = Environment(end_time=200)
+```
+
+### Step 3: Instantiate and Initialize the Model
+We choose "ModelA", which starts with five horizontal bands of species.
+
+```python
+from dissmodel_ca.models import InterspecificCompetition
+
+# Instantiate the model with the initial arrangement 'ModelA'
+ic = InterspecificCompetition(gdf=grid, displacement="ModelA")
+
+# initialize() populates the 'state' column based on the ModelA bands
+ic.initialize()
+```
+
+### Step 4: Visualization (Color Maps)
+To see the results clearly, we map each species ID to a distinct color.
+
+```python
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+
+# Define colors for the 5 species:
+# 0:Lolium (Green), 1:Agrostis (Red), 2:Holcus (Blue), 
+# 3:Poa (Yellow), 4:Cynosurus (Purple)
+colors = ["#2ecc71", "#e74c3c", "#3498db", "#f1c40f", "#9b59b6"]
+cmap = ListedColormap(colors)
+
+# Plot the initial state
+grid.plot(column="state", cmap=cmap)
+plt.title("Initial Species Distribution (Model A)")
+plt.show()
+```
+
+### Step 5: Run and Analyze
+```python
+env.run()
+
+# Plot the final state after 200 steps
+grid.plot(column="state", cmap=cmap)
+plt.title("Final Species Distribution after 200 steps")
+plt.show()
+```
+
+---
+
+## 2. High-Performance Forest Fire (Raster)
+
+When dealing with large landscapes (e.g., 500x500 cells), the **Raster** approach is preferred. This example shows how to use the vectorized `FireModel`.
+
+### Step 1: Setup the Raster Backend
+Instead of a GeoDataFrame, we use a `RasterBackend` which holds raw NumPy arrays.
+
+```python
+from dissmodel.geo.raster.backend import RasterBackend
+
+# A 200x200 grid (40,000 cells)
+backend = RasterBackend(shape=(200, 200))
+```
+
+### Step 2: Initialize with Probabilities
+We can use NumPy to quickly set up our initial conditions.
+
+```python
+import numpy as np
+from dissmodel_ca.models.fire_model import FireState
+
+# Set 2% of the forest on fire randomly
+rng = np.random.default_rng(42)
+initial_state = np.where(
+    rng.random((200, 200)) < 0.02, 
+    FireState.BURNING, 
+    FireState.FOREST
+)
+
+# Store the data in the backend
+backend.set("state", initial_state.astype(np.int8))
+```
+
+### Step 3: Run the Simulation
+The environment remains the same regardless of the substrate (Vector/Raster).
+
+```python
+from dissmodel.core import Environment
+from dissmodel_ca.models import FireModel
+
+env = Environment(start_time=1, end_time=100)
+fire = FireModel(backend=backend)
+
+# The simulation runs using vectorized rule logic
+env.run()
+```
+
+### Step 4: Visualization
+For Raster data, we can use `imshow` for maximum performance.
+
+```python
+# Map: 0:Forest (Green), 1:Burning (Orange), 2:Burned (Gray)
+fire_cmap = ListedColormap(["#27ae60", "#e67e22", "#7f8c8d"])
+
+plt.imshow(backend.get("state"), cmap=fire_cmap)
+plt.colorbar(ticks=[0, 1, 2], label="0:Forest, 1:Burning, 2:Burned")
+plt.title("Forest Fire Spread (Raster)")
+plt.show()
+```
+
+---
+
+## Summary Checklist
+Every `dissmodel-ca` simulation follows this flow:
+1. **Space**: Define your `vector_grid` (GDF) or `RasterBackend` (Arrays).
+2. **Environment**: Set the duration with `Environment(end_time=X)`.
+3. **Model**: Instantiate your model class (passing the space).
+4. **Initialize**: Call `initialize()` or set states manually.
+5. **Run**: Trigger the logic with `env.run()`.
+6. **Visualize**: Plot the final `gdf` or `backend` array.
