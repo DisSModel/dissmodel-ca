@@ -28,7 +28,7 @@ from dissmodel.visualization.widgets import display_inputs
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="CA Explorer (Didactic)", layout="wide")
+st.set_page_config(page_title="CA Explorer (Didactic)", layout="centered")
 st.title("Cellular Automata Explorer (dissmodel)")
 
 # ---------------------------------------------------------------------------
@@ -46,12 +46,12 @@ model_classes: dict[str, type] = {
 # Sidebar — configuration
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.header("Simulation Config")
+    st.header("⚙️ Simulation Config")
     model_name = st.selectbox("Model", list(model_classes.keys()))
     grid_size  = st.slider("Grid size", 10, 100, 30)
     steps      = st.slider("Max steps", 1, 500, 50)
     
-    st.header("Visualization")
+    st.header("🎨 Visualization")
     cmap_name  = st.selectbox(
         "Colormap",
         ["viridis", "tab10", "plasma", "Greens", "Reds", "Blues", "coolwarm", "binary"],
@@ -59,7 +59,7 @@ with st.sidebar:
     anim_speed = st.slider("Animation Speed (fps)", 1, 30, 10)
     
     st.markdown("---")
-    st.header("Design & Controls")
+    st.header("🚀 Controls")
     col_run, col_step = st.columns(2)
     run_btn = col_run.button("▶ Run", use_container_width=True)
     step_btn = col_step.button("⏭️ Step", use_container_width=True)
@@ -76,52 +76,43 @@ def _state_key(name: str, size: int) -> str:
     return f"gdf_state_{name}_{size}"
 
 def _possible_states(model: CellularAutomaton) -> list[int]:
-    """
-    Infer the possible cell states for a model.
-    """
     if hasattr(model, "states") and isinstance(model.states, (list, tuple)):
         return sorted(int(s) for s in model.states)
-    
     import enum
     module = inspect.getmodule(model.__class__)
     if module:
         for _, obj in inspect.getmembers(module):
             if inspect.isclass(obj) and issubclass(obj, enum.IntEnum) and obj is not enum.IntEnum:
                 return sorted([int(e) for e in obj])
-    
     try:
         states = sorted(int(v) for v in model.gdf["state"].unique())
         if states and not (len(states) == 1 and states[0] == 0):
             return states
-    except Exception:
-        pass
-
+    except Exception: pass
     return [0, 1]
 
 def render_grid(gdf, size, cmap_name, plot_area, model, title=""):
     try:
-        # matrix[y, x] where y=row, x=col
+        # Matrix y-x
         matrix = gdf["state"].values.reshape((size, size), order='F')
-        # Flip Y to have y=0 at bottom
-        matrix = matrix[::-1, :]
-    except ValueError:
-        plot_area.error("Grid dimension mismatch. Re-initializing...")
-        time.sleep(1)
-        st.rerun()
-        return
-
-    fig, ax = plt.subplots(figsize=(6, 6))
-    p_states = _possible_states(model)
-    vmin, vmax = min(p_states), max(p_states)
-    if vmin == vmax: vmax = vmin + 1
-    
-    ax.imshow(matrix, cmap=cmap_name, interpolation='nearest', vmin=vmin, vmax=vmax)
-    ax.axis('off')
-    if title:
-        ax.set_title(title)
-    
-    plot_area.pyplot(fig)
-    plt.close(fig)
+        matrix = matrix[::-1, :] # Flip for y=0 at bottom
+        
+        # High-res Matplotlib rendering
+        fig, ax = plt.subplots(figsize=(6, 6))
+        p_states = _possible_states(model)
+        vmin, vmax = min(p_states), max(p_states)
+        if vmin == vmax: vmax = vmin + 1
+        
+        ax.imshow(matrix, cmap=cmap_name, interpolation='nearest', vmin=vmin, vmax=vmax)
+        ax.axis('off')
+        if title:
+            ax.set_title(title)
+        
+        plot_area.pyplot(fig)
+        plt.close(fig)
+        
+    except Exception as e:
+        plot_area.error(f"Render error: {e}. Try resetting.")
 
 # ---------------------------------------------------------------------------
 # Setup Environment & Model
@@ -130,8 +121,6 @@ env = Environment(start_time=0, end_time=steps)
 gdf = vector_grid(dimension=(grid_size, grid_size), resolution=1, attrs={"state": 0})
 
 ModelClass = model_classes[model_name]
-
-# Special handling for Wolfram to avoid dimension mismatch
 if model_name == "Wolfram":
     model = ModelClass(gdf=gdf, dim=grid_size, start_time=0, end_time=steps, xdim=grid_size, final_time=grid_size-1)
 else:
@@ -157,18 +146,10 @@ else:
     gdf["state"] = st.session_state[state_key]
 
 # ---------------------------------------------------------------------------
-# Main UI Layout
+# Paint Logic (In Sidebar to prevent trembling)
 # ---------------------------------------------------------------------------
-col_map, col_paint = st.columns([2, 1])
-
-with col_map:
-    plot_area = st.empty()
-    status_area = st.empty()
-
-# ---------------------------------------------------------------------------
-# Paint Logic
-# ---------------------------------------------------------------------------
-with col_paint:
+with st.sidebar:
+    st.markdown("---")
     st.header("🖌️ Paint Cells")
     paint_enabled = st.toggle("Enable Paint Mode", value=True)
     
@@ -180,10 +161,10 @@ with col_paint:
         pv = st.selectbox("Value", options=p_states, index=min(1, len(p_states)-1))
         
         if st.button("Apply Cell", use_container_width=True):
-            cell_id = f"{py}-{px}" # Corrected: Y-X indexing
+            cell_id = f"{py}-{px}"
             gdf.at[cell_id, "state"] = pv
             st.session_state[state_key] = gdf["state"].copy()
-            st.toast(f"Cell X={px}, Y={py} set to {pv}")
+            st.sidebar.success(f"Painted ({px}, {py})")
             
         st.markdown("---")
         fv = st.selectbox("Fill Value", options=p_states, index=0)
@@ -192,8 +173,11 @@ with col_paint:
             st.session_state[state_key] = gdf["state"].copy()
 
 # ---------------------------------------------------------------------------
-# Initial Render
+# Main UI Render
 # ---------------------------------------------------------------------------
+plot_area = st.empty()
+status_area = st.empty()
+
 render_grid(gdf, grid_size, cmap_name, plot_area, model)
 status_area.write(f"**Step:** {st.session_state['step_count']}")
 
@@ -201,7 +185,6 @@ status_area.write(f"**Step:** {st.session_state['step_count']}")
 # Execution (Run / Step)
 # ---------------------------------------------------------------------------
 if step_btn:
-    # Synchronize environment time for models that depend on it (like Wolfram)
     env._now = st.session_state["step_count"]
     model.execute()
     st.session_state["step_count"] += 1
@@ -214,6 +197,7 @@ if run_btn:
         model.execute()
         st.session_state["step_count"] += 1
         
+        # High-res render inside loop
         render_grid(gdf, grid_size, cmap_name, plot_area, model, title=f"Running... Step {st.session_state['step_count']}")
         status_area.write(f"**Step:** {st.session_state['step_count']}")
         
