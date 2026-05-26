@@ -117,6 +117,7 @@ class Wolfram(CellularAutomaton):
         """
         self.gdf[self.state_attr] = 0
         mid = (self.xdim - 1) // 2
+        # Use explicit y-x indexing: row 0, column 'mid'
         self.gdf.loc[f"0-{mid}", self.state_attr] = 1
 
     def execute(self) -> None:
