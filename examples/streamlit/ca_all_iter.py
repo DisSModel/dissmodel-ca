@@ -76,22 +76,33 @@ def _state_key(name: str, size: int) -> str:
     return f"gdf_state_{name}_{size}"
 
 def _possible_states(model: CellularAutomaton) -> list[int]:
+    """
+    Infer the possible cell states for a model.
+    """
+    # 1. Check for explicit states attribute
     if hasattr(model, "states") and isinstance(model.states, (list, tuple)):
         return sorted(int(s) for s in model.states)
     
+    # 2. Try to find an IntEnum in the model's module (e.g., FireState, SnowState)
     import enum
     module = inspect.getmodule(model.__class__)
     if module:
         for _, obj in inspect.getmembers(module):
-            if inspect.isclass(obj) and issubclass(obj, enum.IntEnum):
+            if inspect.isclass(obj) and issubclass(obj, enum.IntEnum) and obj is not enum.IntEnum:
                 return sorted([int(e) for e in obj])
     
-    states = sorted(int(v) for v in model.gdf["state"].unique())
-    if not states or (len(states) == 1 and states[0] == 0):
-        return [0, 1]
-    return states
+    # 3. Fallback to unique values currently in the grid
+    try:
+        states = sorted(int(v) for v in model.gdf["state"].unique())
+        if states and not (len(states) == 1 and states[0] == 0):
+            return states
+    except Exception:
+        pass
 
-def render_grid(gdf, size, cmap_name, plot_area, title=""):
+    # 4. Ultimate fallback (binary)
+    return [0, 1]
+
+def render_grid(gdf, size, cmap_name, plot_area, model, title=""):
     try:
         matrix = gdf["state"].values.reshape((size, size))
         matrix = matrix[::-1, :] # Flip Y
@@ -100,9 +111,12 @@ def render_grid(gdf, size, cmap_name, plot_area, title=""):
         return
 
     fig, ax = plt.subplots(figsize=(6, 6))
+    
+    # Ensure p_states is never empty
     p_states = _possible_states(model)
     vmin, vmax = min(p_states), max(p_states)
-    if vmin == vmax: vmax = vmin + 1
+    if vmin == vmax: 
+        vmax = vmin + 1
     
     ax.imshow(matrix, cmap=cmap_name, interpolation='nearest', vmin=vmin, vmax=vmax)
     ax.axis('off')
@@ -178,7 +192,7 @@ with col_paint:
 # ---------------------------------------------------------------------------
 # Initial Render
 # ---------------------------------------------------------------------------
-render_grid(gdf, grid_size, cmap_name, plot_area)
+render_grid(gdf, grid_size, cmap_name, plot_area, model)
 status_area.write(f"**Step:** {st.session_state['step_count']}")
 
 # ---------------------------------------------------------------------------
@@ -194,7 +208,7 @@ if run_btn:
     for t in range(steps):
         model.execute()
         st.session_state["step_count"] += 1
-        render_grid(gdf, grid_size, cmap_name, plot_area, title=f"Running... Step {st.session_state['step_count']}")
+        render_grid(gdf, grid_size, cmap_name, plot_area, model, title=f"Running... Step {st.session_state['step_count']}")
         status_area.write(f"**Step:** {st.session_state['step_count']}")
         st.session_state[state_key] = gdf["state"].copy()
         time.sleep(1.0 / anim_speed)
