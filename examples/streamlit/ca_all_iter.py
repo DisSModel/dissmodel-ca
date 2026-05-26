@@ -79,11 +79,9 @@ def _possible_states(model: CellularAutomaton) -> list[int]:
     """
     Infer the possible cell states for a model.
     """
-    # 1. Check for explicit states attribute
     if hasattr(model, "states") and isinstance(model.states, (list, tuple)):
         return sorted(int(s) for s in model.states)
     
-    # 2. Try to find an IntEnum in the model's module (e.g., FireState, SnowState)
     import enum
     module = inspect.getmodule(model.__class__)
     if module:
@@ -91,7 +89,6 @@ def _possible_states(model: CellularAutomaton) -> list[int]:
             if inspect.isclass(obj) and issubclass(obj, enum.IntEnum) and obj is not enum.IntEnum:
                 return sorted([int(e) for e in obj])
     
-    # 3. Fallback to unique values currently in the grid
     try:
         states = sorted(int(v) for v in model.gdf["state"].unique())
         if states and not (len(states) == 1 and states[0] == 0):
@@ -99,20 +96,13 @@ def _possible_states(model: CellularAutomaton) -> list[int]:
     except Exception:
         pass
 
-    # 4. Ultimate fallback (binary)
     return [0, 1]
 
 def render_grid(gdf, size, cmap_name, plot_area, model, title=""):
     try:
-        # vector_grid(dimension=(rows, cols)) orders cells by Y then X.
-        # Order in GDF: 0-0, 1-0, 2-0 (Col 0), 0-1, 1-1, 2-1 (Col 1)...
-        # reshape((size, size), order='F') will correctly fill columns first.
-        # Resulting matrix[y, x] matches the coordinate system.
+        # matrix[y, x] where y=row, x=col
         matrix = gdf["state"].values.reshape((size, size), order='F')
-        
-        # In Cartesian, Y=0 is at the bottom.
-        # In imshow default (origin='upper'), Row 0 is at the top.
-        # So we flip the rows of the matrix to put Y=0 at the bottom.
+        # Flip Y to have y=0 at bottom
         matrix = matrix[::-1, :]
     except ValueError:
         plot_area.error("Grid dimension mismatch. Re-initializing...")
@@ -121,11 +111,9 @@ def render_grid(gdf, size, cmap_name, plot_area, model, title=""):
         return
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    
     p_states = _possible_states(model)
     vmin, vmax = min(p_states), max(p_states)
-    if vmin == vmax: 
-        vmax = vmin + 1
+    if vmin == vmax: vmax = vmin + 1
     
     ax.imshow(matrix, cmap=cmap_name, interpolation='nearest', vmin=vmin, vmax=vmax)
     ax.axis('off')
@@ -143,7 +131,7 @@ gdf = vector_grid(dimension=(grid_size, grid_size), resolution=1, attrs={"state"
 
 ModelClass = model_classes[model_name]
 
-# Special handling for Wolfram to avoid dimension mismatch in the general explorer
+# Special handling for Wolfram to avoid dimension mismatch
 if model_name == "Wolfram":
     model = ModelClass(gdf=gdf, dim=grid_size, start_time=0, end_time=steps, xdim=grid_size, final_time=grid_size-1)
 else:
@@ -187,14 +175,12 @@ with col_paint:
     if paint_enabled:
         p_states = _possible_states(model)
         c1, c2 = st.columns(2)
-        # X is Column (second part of index), Y is Row (first part of index)
         px = c1.number_input("Col (X)", 0, grid_size - 1, 0)
         py = c2.number_input("Row (Y)", 0, grid_size - 1, 0)
         pv = st.selectbox("Value", options=p_states, index=min(1, len(p_states)-1))
         
         if st.button("Apply Cell", use_container_width=True):
-            # Index is Y-X: 'row-col'
-            cell_id = f"{py}-{px}"
+            cell_id = f"{py}-{px}" # Corrected: Y-X indexing
             gdf.at[cell_id, "state"] = pv
             st.session_state[state_key] = gdf["state"].copy()
             st.toast(f"Cell X={px}, Y={py} set to {pv}")
@@ -215,17 +201,22 @@ status_area.write(f"**Step:** {st.session_state['step_count']}")
 # Execution (Run / Step)
 # ---------------------------------------------------------------------------
 if step_btn:
+    # Synchronize environment time for models that depend on it (like Wolfram)
+    env._now = st.session_state["step_count"]
     model.execute()
     st.session_state["step_count"] += 1
     st.session_state[state_key] = gdf["state"].copy()
     st.rerun()
 
 if run_btn:
-    for t in range(steps):
+    for t in range(st.session_state["step_count"], steps):
+        env._now = t
         model.execute()
         st.session_state["step_count"] += 1
+        
         render_grid(gdf, grid_size, cmap_name, plot_area, model, title=f"Running... Step {st.session_state['step_count']}")
         status_area.write(f"**Step:** {st.session_state['step_count']}")
+        
         st.session_state[state_key] = gdf["state"].copy()
         time.sleep(1.0 / anim_speed)
     st.success(f"Simulation finished at step {st.session_state['step_count']}")
