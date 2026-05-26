@@ -129,7 +129,7 @@ class Snow(CellularAutomaton):
         assert self.dim is not None, "dim must be set — pass dim=N when instantiating"
         
         cell = self.gdf.loc[idx]
-        x, y = parse_idx(idx)
+        y, x = parse_idx(idx) # Corrected: first part is Y (row), second is X (col)
         t = self.env.now()
 
         # Top row — snowflakes appear here

@@ -104,15 +104,24 @@ def _possible_states(model: CellularAutomaton) -> list[int]:
 
 def render_grid(gdf, size, cmap_name, plot_area, model, title=""):
     try:
-        matrix = gdf["state"].values.reshape((size, size))
-        matrix = matrix[::-1, :] # Flip Y
+        # vector_grid(dimension=(rows, cols)) orders cells by Y then X.
+        # Order in GDF: 0-0, 1-0, 2-0 (Col 0), 0-1, 1-1, 2-1 (Col 1)...
+        # reshape((size, size), order='F') will correctly fill columns first.
+        # Resulting matrix[y, x] matches the coordinate system.
+        matrix = gdf["state"].values.reshape((size, size), order='F')
+        
+        # In Cartesian, Y=0 is at the bottom.
+        # In imshow default (origin='upper'), Row 0 is at the top.
+        # So we flip the rows of the matrix to put Y=0 at the bottom.
+        matrix = matrix[::-1, :]
     except ValueError:
-        plot_area.error("Grid dimension mismatch. Try resetting.")
+        plot_area.error("Grid dimension mismatch. Re-initializing...")
+        time.sleep(1)
+        st.rerun()
         return
 
     fig, ax = plt.subplots(figsize=(6, 6))
     
-    # Ensure p_states is never empty
     p_states = _possible_states(model)
     vmin, vmax = min(p_states), max(p_states)
     if vmin == vmax: 
@@ -133,7 +142,12 @@ env = Environment(start_time=0, end_time=steps)
 gdf = vector_grid(dimension=(grid_size, grid_size), resolution=1, attrs={"state": 0})
 
 ModelClass = model_classes[model_name]
-model = ModelClass(gdf=gdf, dim=grid_size, start_time=0, end_time=steps)
+
+# Special handling for Wolfram to avoid dimension mismatch in the general explorer
+if model_name == "Wolfram":
+    model = ModelClass(gdf=gdf, dim=grid_size, start_time=0, end_time=steps, xdim=grid_size, final_time=grid_size-1)
+else:
+    model = ModelClass(gdf=gdf, dim=grid_size, start_time=0, end_time=steps)
 
 # Sidebar model parameters
 with st.sidebar:
@@ -173,15 +187,17 @@ with col_paint:
     if paint_enabled:
         p_states = _possible_states(model)
         c1, c2 = st.columns(2)
+        # X is Column (second part of index), Y is Row (first part of index)
         px = c1.number_input("Col (X)", 0, grid_size - 1, 0)
         py = c2.number_input("Row (Y)", 0, grid_size - 1, 0)
         pv = st.selectbox("Value", options=p_states, index=min(1, len(p_states)-1))
         
         if st.button("Apply Cell", use_container_width=True):
-            cell_id = f"{px}-{py}"
+            # Index is Y-X: 'row-col'
+            cell_id = f"{py}-{px}"
             gdf.at[cell_id, "state"] = pv
             st.session_state[state_key] = gdf["state"].copy()
-            st.toast(f"Cell ({px}, {py}) set to {pv}")
+            st.toast(f"Cell X={px}, Y={py} set to {pv}")
             
         st.markdown("---")
         fv = st.selectbox("Fill Value", options=p_states, index=0)
