@@ -1,0 +1,6 @@
+dissmodel @ git+https://github.com/DisSModel/dissmodel.git
+dissmodel-ca @ git+https://github.com/DisSModel/dissmodel-ca.git
+streamlit
+matplotlib
+geopandas
+libpysal
