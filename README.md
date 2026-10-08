@@ -13,9 +13,13 @@ This library provides a collection of cellular automata models implemented using
 
 ## ⚙️ Installation
 
+The package is not on PyPI. Install it from GitHub:
+
 ```bash
-pip install .
+pip install git+https://github.com/DisSModel/dissmodel-ca
 ```
+
+or, from a clone, `pip install .` (`pip install ".[examples]"` for the Streamlit apps, `pip install ".[dev]"` for the tests).
 
 ## 🚀 Usage
 

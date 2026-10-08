@@ -115,6 +115,13 @@ class Wolfram(CellularAutomaton):
         All other cells start as dead (0). The seed is placed at the
         middle column: ``(xdim - 1) // 2``.
         """
+        needed = [f"{self.final_time}-{self.xdim - 1}"]  # last row, last column
+        if needed[0] not in self.gdf.index:
+            # .loc on a missing label would silently append geometry-less rows
+            raise ValueError(
+                f"Wolfram needs a grid of {self.xdim} columns × {self.final_time + 1} rows "
+                f"(xdim × final_time + 1); pass xdim/final_time matching the grid."
+            )
         self.gdf[self.state_attr] = 0
         mid = (self.xdim - 1) // 2
         # Use explicit y-x indexing: row 0, column 'mid'

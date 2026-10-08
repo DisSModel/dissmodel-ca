@@ -5,19 +5,27 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dissmodel-ca"
 version = "0.1.0"
-description = "Cellular Automata examples and library for dissmodel"
+description = "Cellular automata models for DisSModel"
 readme = "README.md"
-requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Sérgio Souza Costa", email = "sergio.costa@ufma.br" },
+    { name = "Samylli Kalei Silva Zhao" },
+    { name = "Nerval de Jesus Santos Junior" },
+]
+requires-python = ">=3.10"
 dependencies = [
-    "dissmodel",
+    "dissmodel>=0.5.0",
     "libpysal",
     "numpy",
     "geopandas",
     "matplotlib",
-    "streamlit",
 ]
 
 [project.optional-dependencies]
+examples = [
+    "streamlit",
+]
 dev = [
     "pytest",
     "black",
@@ -27,3 +35,9 @@ dev = [
 [tool.setuptools]
 package-dir = {"" = "src"}
 packages = ["dissmodel_ca", "dissmodel_ca.models"]
+
+[project.urls]
+Homepage = "https://github.com/DisSModel/dissmodel-ca"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

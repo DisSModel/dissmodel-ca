@@ -57,10 +57,16 @@ class Excitable(CellularAutomaton):
         matching the original TerraME model on a 50×50 grid.
         All other cells start at state ``0`` (resting).
         """
+        seeds = ["15-20", "15-30"]   # TerraME (x, y) → DisSModel index "{y}-{x}"
+        missing = [s for s in seeds if s not in self.gdf.index]
+        if missing:
+            # .loc on a missing label would silently append geometry-less rows
+            raise ValueError(
+                f"Excitable seeds {missing} are outside the grid: it needs at least "
+                "31 columns × 16 rows (the canonical setup is 50×50)."
+            )
         self.gdf["state"] = 0
-        # TerraME (x, y) → DisSModel index "{y}-{x}"
-        self.gdf.loc["15-20", "state"] = 1
-        self.gdf.loc["15-30", "state"] = 1
+        self.gdf.loc[seeds, "state"] = 1
 
     def rule(self, idx: Any) -> int:
         """

@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "dissmodel-ca: Cellular Automata extension for DisSModel"
+abstract: >-
+  Cellular automata models for the DisSModel framework (vector and raster substrates): Game of Life, fire spread, growth, snow, diffusion, Wolfram rules and other classic examples, ported from the TerraME model collection.
+authors:
+  - family-names: "Costa"
+    given-names: "Sérgio Souza"
+    orcid: "https://orcid.org/0000-0002-0232-4549"
+  - family-names: "Zhao"
+    given-names: "Samylli Kalei Silva"
+    orcid: "https://orcid.org/0009-0009-6490-4459"
+  - family-names: "Santos Junior"
+    given-names: "Nerval de Jesus"
+    orcid: "https://orcid.org/0009-0000-2339-3191"
+version: 0.1.0
+date-released: "2026-10-08"
+license: MIT
+url: "https://github.com/DisSModel/dissmodel-ca"
+repository-code: "https://github.com/DisSModel/dissmodel-ca"
+keywords:
+  - cellular automata
+  - DisSModel
+  - spatial dynamic modeling
+  - TerraME
+type: software
