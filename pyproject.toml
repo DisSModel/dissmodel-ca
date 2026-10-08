@@ -10,8 +10,8 @@ readme = "README.md"
 license = { text = "MIT" }
 authors = [
     { name = "Sérgio Souza Costa", email = "sergio.costa@ufma.br" },
-    { name = "Samylli Kalei Silva Zhao" },
     { name = "Nerval de Jesus Santos Junior" },
+    { name = "Samylli Kalei Silva Zhao" },
 ]
 requires-python = ">=3.10"
 dependencies = [
