@@ -1,6 +1,4 @@
-dissmodel @ git+https://github.com/DisSModel/dissmodel.git
-dissmodel-ca @ git+https://github.com/DisSModel/dissmodel-ca.git
-streamlit
-matplotlib
-geopandas
-libpysal
+# Pinned so that the deployed demo is reproducible; bump together with releases.
+dissmodel==0.6.6
+dissmodel-ca @ git+https://github.com/DisSModel/dissmodel-ca@v0.1.0
+streamlit>=1.30

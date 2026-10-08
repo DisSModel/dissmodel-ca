@@ -11,17 +11,15 @@ This is possible because all models follow the same conventions:
 - ``initialize()`` uses the parameters set by ``display_inputs``.
 - ``execute()`` applies ``rule()`` to every cell each step.
 
+Standalone: this folder is what gets deployed (e.g. to a Hugging Face
+Space), so the app imports only installed packages (see requirements.txt).
+
 Usage
 -----
-    streamlit run examples/streamlit/ca_all.py
+    pip install -r requirements.txt
+    streamlit run app.py
 """
 from __future__ import annotations
-
-import sys
-from pathlib import Path
-
-# Adiciona o diretorio src ao caminho de busca do Python
-sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
 import inspect
 
@@ -68,6 +66,12 @@ run = st.button("🚀 Run Simulation")
 # Get selected class
 ModelClass = model_classes[model_name]
 
+# Models whose initial state is placed at fixed cells (TerraME setups)
+MIN_GRID = {"Excitable": 50, "Parity": 50}
+if grid_size < MIN_GRID.get(model_name, 0):
+    grid_size = MIN_GRID[model_name]
+    st.sidebar.caption(f"{model_name} seeds fixed cells: grid set to {grid_size}×{grid_size}.")
+
 # Display Model Description
 if ModelClass.__doc__:
     with st.expander("📖 About this model", expanded=True):
@@ -89,16 +93,17 @@ if ModelClass.__doc__:
 # 1. Environment
 env = Environment(start_time=0, end_time=steps)
 
-# 2. Grid
-gdf = vector_grid(
-    dimension=(grid_size, grid_size),
-    resolution=1,
-    attrs={"state": 0},
-)
+# 2. Grid — Wolfram stores one generation per row: grid_size columns,
+#    steps + 1 rows
+if model_name == "Wolfram":
+    gdf = vector_grid(dimension=(grid_size, steps + 1), resolution=1, attrs={"state": 0})
+    extra = {"xdim": grid_size, "final_time": steps}
+else:
+    gdf = vector_grid(dimension=(grid_size, grid_size), resolution=1, attrs={"state": 0})
+    extra = {}
 
 # 3. Model — instantiated dynamically from sidebar selection
-ModelClass = model_classes[model_name]
-model = ModelClass(gdf=gdf, dim=grid_size, start_time=0, end_time=steps)
+model = ModelClass(gdf=gdf, dim=grid_size, start_time=0, end_time=steps, **extra)
 
 # 4. Sidebar widgets — model-specific parameters rendered automatically
 st.sidebar.markdown("---")

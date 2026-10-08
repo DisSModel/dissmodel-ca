@@ -70,10 +70,16 @@ class Parity(CellularAutomaton):
         matching the original TerraME model on a 50×50 grid.
         All other cells start as ``OFF``.
         """
+        seeds = ["25-10", "25-40"]   # TerraME (x, y) → DisSModel index "{y}-{x}"
+        missing = [s for s in seeds if s not in self.gdf.index]
+        if missing:
+            # .loc on a missing label would silently append geometry-less rows
+            raise ValueError(
+                f"Parity seeds {missing} are outside the grid: it needs at least "
+                "41 columns × 26 rows (the canonical setup is 50×50)."
+            )
         self.gdf["state"] = ParityState.OFF
-        # TerraME (x, y) → DisSModel index "{y}-{x}"
-        self.gdf.loc["25-10", "state"] = ParityState.ON
-        self.gdf.loc["25-40", "state"] = ParityState.ON
+        self.gdf.loc[seeds, "state"] = ParityState.ON
 
     def rule(self, idx: Any) -> int:
         """
