@@ -66,10 +66,14 @@ class FireState(IntEnum):
         Actively burning, spreads fire to neighbors.
     BURNED : int
         Already burned, no longer spreads.
+    EMPTY : int
+        No vegetation; never burns. Its code comes after the others so
+        that the codes 0–2 keep their earlier meaning.
     """
     FOREST  = 0
     BURNING = 1
     BURNED  = 2
+    EMPTY   = 3
 
 
 class FireModel(RasterCellularAutomaton):
@@ -87,8 +91,12 @@ class FireModel(RasterCellularAutomaton):
     backend : RasterBackend
         Shared backend. Must contain a ``"state"`` array (or the name
         set via ``state_attr``) with values from :class:`FireState`.
+    empty : float, optional
+        Probability that a cell starts EMPTY, by default 0.1 (as in the
+        TerraME ``Fire`` model). Only used if ``initialize()`` is called.
     initial_fire_density : float, optional
-        Proportion of cells that start as BURNING, by default 0.05.
+        Probability that a cell starts BURNING. With the default, 0.0, a
+        single cell drawn among all cells starts burning, as in TerraME.
         Only used if ``initialize()`` is called.
     seed : int, optional
         Random seed for initialization, by default 42.
@@ -111,11 +119,13 @@ class FireModel(RasterCellularAutomaton):
     def setup(
         self,
         backend:              RasterBackend,
-        initial_fire_density: float = 0.05,
+        empty:                float = 0.1,
+        initial_fire_density: float = 0.0,
         seed:                 int   = 42,
         state_attr:           str   = "state",
     ) -> None:
         super().setup(backend, state_attr=state_attr)
+        self.empty                = empty
         self.initial_fire_density = initial_fire_density
         self.seed                 = seed
         # Rook = Von Neumann (4 directions) — same as vector FireModel
@@ -125,16 +135,28 @@ class FireModel(RasterCellularAutomaton):
         """
         Fill the grid with a random initial state.
 
-        Uses :attr:`initial_fire_density` to determine the proportion of
-        cells that start as BURNING. The remaining cells start as FOREST.
-        Only needed when the backend array is not already initialized.
+        Each cell is EMPTY with probability :attr:`empty` and FOREST
+        otherwise. Then, if :attr:`initial_fire_density` is zero, one cell
+        drawn among all cells (empty ones included, as in TerraME) is set
+        to BURNING; otherwise each cell is set to BURNING with probability
+        :attr:`initial_fire_density`. Only needed when the backend array
+        is not already initialized.
         """
+        for name in ("empty", "initial_fire_density"):
+            value = getattr(self, name)
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{name} must be between 0.0 and 1.0, got {value}.")
+
         rng   = np.random.default_rng(self.seed)
         state = np.where(
-            rng.random(self.shape) < self.initial_fire_density,
-            int(FireState.BURNING),
+            rng.random(self.shape) < self.empty,
+            int(FireState.EMPTY),
             int(FireState.FOREST),
         ).astype(np.int8)
+        if self.initial_fire_density > 0:
+            state[rng.random(self.shape) < self.initial_fire_density] = int(FireState.BURNING)
+        else:
+            state.flat[rng.integers(state.size)] = int(FireState.BURNING)
         self.backend.set(self.state_attr, state)
 
     def rule(self, arrays: dict) -> dict:
@@ -145,7 +167,7 @@ class FireModel(RasterCellularAutomaton):
 
         - BURNING → BURNED
         - FOREST with ≥ 1 BURNING neighbor → BURNING  (Rook neighborhood)
-        - otherwise → unchanged
+        - otherwise → unchanged (EMPTY and BURNED never change)
 
         Parameters
         ----------

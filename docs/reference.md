@@ -99,12 +99,16 @@ env.run()
 ### Forest Fire (Vector)
 
 **1. Description:**
-Simulates the spread of a forest fire across a landscape.
+Simulates the spread of a forest fire across a landscape. By default the
+setup follows the TerraME `Fire` model: 10% of the cells are empty and a
+single cell, drawn at random, starts burning. `initial_fire_density > 0`
+starts a random fraction of the cells burning instead.
 
 **2. States:**
 - `0` - Forest
 - `1` - Burning
 - `2` - Burned
+- `3` - Empty (no vegetation; never burns)
 
 **3. Neighborhood:**
 **Von Neumann (Rook)** neighborhood (4 neighbors).
@@ -130,7 +134,7 @@ grid = vector_grid(dimension=(20, 20), resolution=1, attrs={"state": 0})
 env = Environment(end_time=20)
 
 fire = FireModel(gdf=grid)
-fire.setup(initial_fire_density=0.05)
+fire.setup(empty=0.1)   # TerraME setup: 10% empty, one ignition
 fire.initialize()
 env.run()
 ```
@@ -179,10 +183,11 @@ env.run()
 ### Forest Fire (Raster)
 
 **1. Description:**
-NumPy-optimized vectorized version of the Forest Fire model.
+NumPy-optimized vectorized version of the Forest Fire model, with the same
+initial setup (10% empty cells and a single ignition by default).
 
 **2. States:**
-`0 - Forest`, `1 - Burning`, `2 - Burned`.
+`0 - Forest`, `1 - Burning`, `2 - Burned`, `3 - Empty`.
 
 **3. Neighborhood:**
 **Von Neumann (Rook)**.
@@ -208,7 +213,7 @@ backend = RasterBackend(shape=(100, 100))
 env = Environment(start_time=1, end_time=50)
 
 fire = FireModel(backend=backend)
-fire.setup(backend=backend, initial_fire_density=0.02)
+fire.setup(backend=backend, empty=0.1, initial_fire_density=0.02)
 fire.initialize()
 env.run()
 ```
@@ -298,7 +303,7 @@ Simulates spatial growth from a central seed with a colonization probability.
 `0 - Empty`, `1 - Alive`.
 
 **3. Neighborhood:**
-**Moore (Queen)** neighborhood (8 neighbors).
+**Von Neumann (Rook)** neighborhood (4 neighbors), as in TerraME.
 
 **4. Transition Rules:**
 ```python
@@ -455,7 +460,8 @@ Expanding symmetric patterns based on the Gilbert parity logic (XOR).
 `0 - OFF`, `1 - ON`.
 
 **3. Neighborhood:**
-**Von Neumann (Rook)** neighborhood.
+**Von Neumann** neighborhood (4 neighbors) that wraps around the grid edges
+(torus), as in TerraME. `parity.setup(wrap=False)` gives a bounded grid.
 
 **4. Transition Rules:**
 ```python

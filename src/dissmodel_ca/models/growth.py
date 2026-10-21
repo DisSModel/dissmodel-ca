@@ -4,7 +4,7 @@ import random
 from enum import IntEnum
 from typing import Any
 
-from libpysal.weights import Queen
+from libpysal.weights import Rook
 
 from dissmodel.geo import CellularAutomaton
 
@@ -29,8 +29,10 @@ class Growth(CellularAutomaton):
     Stochastic cellular automaton simulating spatial growth from a seed.
 
     A single live cell is placed at the center of the grid at initialization.
-    At each step, empty cells adjacent to at least one live cell become alive
-    with probability :attr:`probability`.
+    At each step, empty cells with at least one live neighbor (Von Neumann
+    neighborhood, 4 directions, as in TerraME's
+    ``createNeighborhood{strategy = "vonneumann"}``) become alive with
+    probability :attr:`probability`.
 
     Parameters
     ----------
@@ -66,7 +68,8 @@ class Growth(CellularAutomaton):
             to at least one live cell, by default 0.15.
         """
         self.probability = probability
-        self.create_neighborhood(strategy=Queen, use_index=True)
+        # Rook = Von Neumann (4 directions), as in the TerraME model
+        self.create_neighborhood(strategy=Rook, use_index=True)
 
     def initialize(self) -> None:
         """
@@ -105,9 +108,7 @@ class Growth(CellularAutomaton):
         if state == GrowthState.ALIVE:
             return GrowthState.ALIVE
 
-        
         alive_neighbors = (self.neighbor_values(idx, self.state_attr) == GrowthState.ALIVE).sum()
-
 
         if alive_neighbors > 0 and random.random() < self.probability:
             return GrowthState.ALIVE

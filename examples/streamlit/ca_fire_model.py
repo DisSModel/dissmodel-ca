@@ -73,10 +73,10 @@ display_inputs(fire, st.sidebar)
 fire.initialize()
 
 # 6. Map
-cmap = ListedColormap(["green", "red", "brown"])  # Forest, Burning, Burned
+cmap = ListedColormap(["green", "red", "brown", "white"])  # Forest, Burning, Burned, Empty
 Map(
     gdf=gdf,
-    plot_params={"column": "state", "cmap": cmap, "ec": "black"},
+    plot_params={"column": "state", "cmap": cmap, "vmin": 0, "vmax": 3, "ec": "black"},
     plot_area=st.empty(),
 )
 

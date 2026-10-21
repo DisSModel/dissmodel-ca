@@ -3,9 +3,9 @@ from __future__ import annotations
 from enum import IntEnum
 from typing import Any
 
-from libpysal.weights import Rook
-
 from dissmodel.geo import CellularAutomaton
+
+from ._neighborhood import grid_neighbors
 
 
 class ParityState(IntEnum):
@@ -45,8 +45,10 @@ class Parity(CellularAutomaton):
 
     Notes
     -----
-    The canonical TerraME version uses a wrapped (toroidal) Von Neumann
-    neighborhood. Boundary effects may differ slightly without wrapping.
+    As in the TerraME version (``createNeighborhood{strategy =
+    "vonneumann", wrap = true}``), the neighborhood wraps around the grid
+    edges (torus), so the waves re-enter on the opposite side instead of
+    stopping at the border. Pass ``wrap=False`` for a bounded grid.
 
     Examples
     --------
@@ -58,9 +60,20 @@ class Parity(CellularAutomaton):
     >>> parity.initialize()
     """
 
-    def setup(self) -> None:
-        """Build the Rook (Von Neumann, 4-direction) neighborhood."""
-        self.create_neighborhood(strategy=Rook, use_index=True)
+    def setup(self, wrap: bool = True) -> None:
+        """
+        Build the Von Neumann (4-direction) neighborhood.
+
+        Parameters
+        ----------
+        wrap : bool, optional
+            If ``True`` (default, as in TerraME), opposite edges of the
+            grid are neighbors (toroidal grid).
+        """
+        self.wrap = wrap
+        self.create_neighborhood(
+            neighbors_dict=grid_neighbors(self.gdf.index, "vonneumann", wrap=wrap)
+        )
 
     def initialize(self) -> None:
         """
@@ -70,7 +83,9 @@ class Parity(CellularAutomaton):
         matching the original TerraME model on a 50×50 grid.
         All other cells start as ``OFF``.
         """
-        seeds = ["25-10", "25-40"]   # TerraME (x, y) → DisSModel index "{y}-{x}"
+        # TerraME (x, y) → DisSModel index "{y}-{x}" (row y counted from the
+        # bottom, so the map is the TerraME map flipped vertically)
+        seeds = ["25-10", "25-40"]
         missing = [s for s in seeds if s not in self.gdf.index]
         if missing:
             # .loc on a missing label would silently append geometry-less rows
