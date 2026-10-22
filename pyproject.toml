@@ -41,3 +41,6 @@ Homepage = "https://github.com/DisSModel/dissmodel-ca"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "golden: compares the models with TerraME runs (tests/goldens; DISSMODEL_GOLDEN_FULL=1 for every step)",
+]

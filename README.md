@@ -67,3 +67,21 @@ jupyter lab examples/notebooks/ca_game_of_life.ipynb
 | `Excitable` | Vector | Excitable medium waves (spiral/ring patterns). |
 | `Parasit` | Vector | Host-parasit spatial dynamics. |
 | `Interspecific` | Vector | Grass species competition model. |
+
+---
+
+## ✅ Verification against TerraME
+
+The models were checked against TerraME 2.0.1 running the `ca` package
+([`terrame-goldens`](https://github.com/LambdaGeo/terrame-goldens) v0.1.0):
+
+- **Deterministic rules** (`GameOfLife` vector and raster, `Parity`,
+  `Excitable`, `Wolfram` 30/90/110, `FireModel` vector and raster, `Anneal`,
+  `Oscillator`, `Parasit`): started from TerraME's state, they match it
+  **cell by cell at every step** (up to 500 steps).
+- **Stochastic models** (`FireModel` initial state, `SolidDiffusion`,
+  `Growth`, `Snow`, `InterspecificCompetition`): compared with 50 TerraME
+  runs by distribution.
+
+`tests/test_goldens.py` runs these comparisons (`pytest -m golden`, about a
+minute; `DISSMODEL_GOLDEN_FULL=1` for every step and the slow ensembles).
