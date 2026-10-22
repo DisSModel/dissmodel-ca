@@ -196,7 +196,7 @@ initial setup (10% empty cells and a single ignition by default).
 ```python
 def rule(self, arrays: dict) -> dict:
     state = arrays[self.state_attr]
-    has_burning = self.backend.focal_sum_mask(state == int(FireState.BURNING)) > 0
+    has_burning = self.backend.focal_sum_mask(state == int(FireState.BURNING), self.dirs) > 0
     new_state = state.copy()
     new_state = np.where(state == int(FireState.BURNING), int(FireState.BURNED),  new_state)
     new_state = np.where((state == int(FireState.FOREST)) & has_burning, int(FireState.BURNING), new_state)
@@ -229,7 +229,9 @@ The classic zero-player game demonstrating mathematical emergence.
 `0 - Dead`, `1 - Alive`.
 
 **3. Neighborhood:**
-**Moore (Queen)** neighborhood (8 neighbors).
+**Moore (Queen)** neighborhood (8 neighbors), wrapped around the grid edges
+(torus), as in TerraME (`createNeighborhood{wrap = true}`).
+`GameOfLife(gdf=grid, wrap=False)` gives a bounded grid.
 
 **4. Transition Rules:**
 ```python
@@ -266,13 +268,16 @@ Raster-based implementation of Conway's Game of Life using NumPy.
 `0 - Dead`, `1 - Alive`.
 
 **3. Neighborhood:**
-**Moore (Queen)** neighborhood.
+**Moore (Queen)** neighborhood, wrapped around the grid edges as in TerraME;
+`wrap=False` gives a bounded grid.
 
 **4. Transition Rules:**
 ```python
 def rule(self, arrays: dict) -> dict:
     state     = arrays[self.state_attr]
-    neighbors = self.backend.focal_sum_mask(state == 1)
+    alive     = (state == 1).astype(np.int8)
+    neighbors = sum(np.roll(alive, (dr, dc), axis=(0, 1))   # wrap = True
+                    for dr in (-1, 0, 1) for dc in (-1, 0, 1) if (dr, dc) != (0, 0))
     survive   = (state == 1) & np.isin(neighbors, [2, 3])
     born      = (state == 0) & (neighbors == 3)
     return {self.state_attr: np.where(survive | born, 1, 0).astype(np.int8)}
@@ -570,7 +575,11 @@ Atomic diffusion via random vacancy swapping.
 **Moore (Queen)**.
 
 **4. Transition Rules:**
-Uses a **sequential random sweep** in `execute()`.
+As in TerraME, in `execute()`: every cell that was a vacancy at the start of
+the step draws one of its neighbors at random and takes its atom, unless that
+neighbor was a vacancy at the start of the step or its atom has already been
+taken in this step. A vacancy moves at most once per step; cells are visited
+column by column, in TerraME's order.
 
 **5. Usage Example:**
 ```python

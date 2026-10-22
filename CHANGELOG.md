@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-Four models now follow the TerraME `ca` package (https://github.com/terrame/ca),
+Six models now follow the TerraME `ca` package (https://github.com/terrame/ca),
 where they used to differ. The results of these models change; a new minor
 release (0.2.0) is suggested.
 
@@ -18,6 +18,27 @@ release (0.2.0) is suggested.
   `initial_fire_density` now defaults to 0.0 and, above zero, starts a random
   fraction of the cells burning instead (with `empty=0` and a density of
   0.05 the old setup is recovered, though not the same random draw).
+- `GameOfLife` (vector and raster): the Moore neighborhood wraps around the
+  grid edges, as in TerraME's `Life` (`wrap = true`); `wrap=False` keeps the
+  bounded grid. A glider now crosses the edge instead of dying on it.
+- `FireModel` (raster): the fire spreads to the four Von Neumann neighbors,
+  as in TerraME and in the vector version. The rule passed no neighborhood
+  to `focal_sum_mask`, which counts all eight (Moore), so the fire also
+  spread diagonally.
+- `SolidDiffusion`: the step follows TerraME. Each vacancy draws one of all
+  its neighbors (a vacancy may draw another vacancy and stay put) and moves
+  at most once per step, reading the state at the start of the step. The
+  port drew only among atoms and could move a vacancy several times in one
+  step, so the atoms mixed faster than in TerraME (after 400 steps, 35.9
+  atoms of one kind past the middle column against 26.5 in TerraME; now
+  27).
+- `tests/test_goldens.py` (marker `golden`): the models against TerraME 2.0.1
+  runs from `terrame-goldens` v0.1.0. Deterministic models start from
+  TerraME's state and must match it cell by cell; stochastic ones are
+  compared with 50 TerraME runs by a Kolmogorov-Smirnov test and a test on
+  the means. About a minute by default; `DISSMODEL_GOLDEN_FULL=1` compares
+  every step and adds the slow ensembles. `tests/goldens/` holds the
+  extract, its SHA-256 provenance and the script that makes it.
 - New `dissmodel_ca.models._neighborhood.grid_neighbors`: Von Neumann or Moore
   neighborhoods built from the `"row-col"` index, with optional wrap.
 - `tests/test_terrame_rules.py`: Parity and Excitable are compared step by step

@@ -183,7 +183,7 @@ class FireModel(RasterCellularAutomaton):
 
         # count BURNING neighbors (Von Neumann / Rook — 4 directions)
         has_burning = self.backend.focal_sum_mask(
-            state == int(FireState.BURNING)
+            state == int(FireState.BURNING), self.dirs
         ) > 0
 
         new_state = state.copy()

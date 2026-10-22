@@ -4,6 +4,7 @@ import random
 from enum import IntEnum
 from typing import Any
 
+import numpy as np
 from dissmodel.geo import CellularAutomaton, parse_idx
 
 
@@ -25,35 +26,12 @@ class SolidDiffusionState(IntEnum):
     VACANCY = 2
 
 
-def _queen_neighbors(idx: str, dim: int) -> list[str]:
-    """
-    Return the Moore (Queen) neighbor indices for a cell on a square grid.
-
-    Computes neighbors directly from the ``"{y}-{x}"`` index format,
-    clipping at grid boundaries (no wrap).
-
-    Parameters
-    ----------
-    idx : str
-        Cell index in ``"{y}-{x}"`` format.
-    dim : int
-        Grid side length (number of rows = number of columns).
-
-    Returns
-    -------
-    list[str]
-        Indices of valid neighbors (up to 8).
-    """
-    x, y = parse_idx(idx)
-    neighbors = []
-    for dy in (-1, 0, 1):
-        for dx in (-1, 0, 1):
-            if dy == 0 and dx == 0:
-                continue
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < dim and 0 <= ny < dim:
-                neighbors.append(f"{nx}-{ny}")
-    return neighbors
+#: (d_row, d_col) offsets of the Moore neighborhood, without wrap (TerraME default).
+_MOORE: tuple[tuple[int, int], ...] = (
+    (-1, -1), (-1, 0), (-1, 1),
+    (0, -1),           (0, 1),
+    (1, -1),  (1, 0),  (1, 1),
+)
 
 
 class SolidDiffusion(CellularAutomaton):
@@ -82,16 +60,19 @@ class SolidDiffusion(CellularAutomaton):
 
     Notes
     -----
-    Because diffusion requires atomic swaps (two cells updated in a single
-    operation), synchronous CA update is physically incorrect here — it
-    would create or destroy atoms. :meth:`execute` therefore uses a
-    **sequential random sweep**: vacancies are processed in a shuffled
-    order, each swapping with one randomly chosen non-vacant neighbor.
-    This matches the intended stochastic diffusion dynamics.
+    The step follows the TerraME version (``ca`` package, ``SolidDiffusion``):
 
-    Neighbor indices are computed directly from the ``"{y}-{x}"`` grid
-    index format via :func:`_queen_neighbors`, avoiding reliance on any
-    internal weights attribute.
+    - every cell reads the state at the start of the step (``cell.past``);
+    - each cell that was a vacancy draws **one** of its Moore neighbors at
+      random (a vacancy may draw another vacancy, and then stays put);
+    - it takes the drawn atom, which becomes a vacancy, unless that atom
+      was a vacancy at the start of the step or has already been taken by
+      another vacancy in this step.
+
+    So a vacancy moves at most once per step, and a vacancy created in the
+    step does not move until the next one. Cells are visited in TerraME's
+    order (column by column, and row by row within a column). The swaps
+    keep the number of atoms of each kind.
 
     Examples
     --------
@@ -110,7 +91,7 @@ class SolidDiffusion(CellularAutomaton):
         Parameters
         ----------
         seed : int, optional
-            Random seed for the sequential shuffle in :meth:`execute`,
+            Random seed for the neighbor draws in :meth:`execute`,
             by default 42.
         """
         self.seed = seed
@@ -144,36 +125,38 @@ class SolidDiffusion(CellularAutomaton):
 
     def execute(self) -> None:
         """
-        Perform one diffusion step via a sequential random vacancy sweep.
-
-        Each vacancy in a randomly shuffled order picks one non-vacant
-        neighbor at random and swaps states with it. Vacancies that have
-        already been filled earlier in the same sweep are skipped.
-
-        Neighbor indices are computed directly from grid indices using
-        :func:`_queen_neighbors` — no spatial weights object required.
+        Perform one diffusion step with TerraME's rule (see the class notes).
         """
         assert self.dim is not None, "dim must be set — pass dim=N when instantiating"
 
-        indices = list(self.gdf.index)
-        self._rng.shuffle(indices)
+        index = list(self.gdf.index)
+        pos = [parse_idx(i) for i in index]
+        n_rows = max(p.row for p in pos) + 1
+        n_cols = max(p.col for p in pos) + 1
+        rows = np.array([p.row for p in pos])
+        cols = np.array([p.col for p in pos])
 
-        for idx in indices:
-            if self.gdf.loc[idx, "state"] != int(SolidDiffusionState.VACANCY):
-                continue
+        past = np.empty((n_rows, n_cols), dtype=np.int64)
+        past[rows, cols] = self.gdf["state"].to_numpy()
+        cur = past.copy()
+        vacancy = int(SolidDiffusionState.VACANCY)
 
-            neighbor_ids = _queen_neighbors(idx, self.dim)
-            non_vacant = [
-                n for n in neighbor_ids
-                if self.gdf.loc[n, "state"] != int(SolidDiffusionState.VACANCY)
-            ]
+        # TerraME visits the cells column by column (x outer, y inner)
+        for c in range(n_cols):
+            for r in range(n_rows):
+                if past[r, c] != vacancy:
+                    continue
+                neighbors = [
+                    (r + dr, c + dc)
+                    for dr, dc in _MOORE
+                    if 0 <= r + dr < n_rows and 0 <= c + dc < n_cols
+                ]
+                nr, nc = neighbors[self._rng.randrange(len(neighbors))]
+                if past[nr, nc] != vacancy and cur[nr, nc] != vacancy:
+                    cur[r, c] = past[nr, nc]
+                    cur[nr, nc] = vacancy
 
-            if not non_vacant:
-                continue
-
-            chosen = self._rng.choice(non_vacant)
-            self.gdf.loc[idx,     "state"] = self.gdf.loc[chosen, "state"]
-            self.gdf.loc[chosen,  "state"] = int(SolidDiffusionState.VACANCY)
+        self.gdf["state"] = cur[rows, cols]
 
     def rule(self, idx: Any) -> int:  # pragma: no cover
         """Not used. Diffusion logic is in :meth:`execute`."""

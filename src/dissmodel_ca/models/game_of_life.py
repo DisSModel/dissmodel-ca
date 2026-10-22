@@ -3,10 +3,10 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from libpysal.weights import Queen
-
 from dissmodel.geo import FillStrategy, fill
 from dissmodel.geo import CellularAutomaton
+
+from ._neighborhood import grid_neighbors
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +99,13 @@ class GameOfLife(CellularAutomaton):
         Extra keyword arguments forwarded to
         :class:`~dissmodel.geo.CellularAutomaton`.
 
+    Notes
+    -----
+    As in the TerraME version (``createNeighborhood{wrap = true}``), the
+    Moore neighborhood wraps around the grid edges (torus): a glider that
+    leaves on one side comes back on the other. Pass ``wrap=False`` for a
+    bounded grid, where cells beyond the edge count as dead.
+
     Examples
     --------
     >>> from dissmodel.geo import vector_grid
@@ -109,9 +116,20 @@ class GameOfLife(CellularAutomaton):
     >>> gol.initialize()
     """
 
-    def setup(self) -> None:
-        """Build the Queen neighborhood for the grid."""
-        self.create_neighborhood(strategy=Queen, use_index=True)
+    def setup(self, wrap: bool = True) -> None:
+        """
+        Build the Moore (8-direction) neighborhood.
+
+        Parameters
+        ----------
+        wrap : bool, optional
+            If ``True`` (default, as in TerraME), opposite edges of the
+            grid are neighbors (toroidal grid).
+        """
+        self.wrap = wrap
+        self.create_neighborhood(
+            neighbors_dict=grid_neighbors(self.gdf.index, "moore", wrap=wrap)
+        )
 
     def initialize(self) -> None:
         """

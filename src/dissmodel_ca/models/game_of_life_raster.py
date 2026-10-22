@@ -73,6 +73,10 @@ class GameOfLife(RasterCellularAutomaton):
         Random seed for initialization, by default 42.
     state_attr : str, optional
         Name of the state array in the backend, by default ``"state"``.
+    wrap : bool, optional
+        If ``True`` (default, as in TerraME's ``createNeighborhood{wrap =
+        true}``), the neighborhood wraps around the grid edges (torus).
+        With ``False``, cells beyond the edge count as dead.
 
     Examples
     --------
@@ -91,10 +95,12 @@ class GameOfLife(RasterCellularAutomaton):
         density:    float = 0.3,
         seed:       int   = 42,
         state_attr: str   = "state",
+        wrap:       bool  = True,
     ) -> None:
         super().setup(backend, state_attr=state_attr)
         self.density = density
         self.seed    = seed
+        self.wrap    = wrap
 
     def initialize(self) -> None:
         """
@@ -112,7 +118,7 @@ class GameOfLife(RasterCellularAutomaton):
         Vectorized Conway transition rule.
 
         Applied once per step over the entire grid using Moore neighborhood
-        (8 directions — all 8 neighbors counted via focal_sum_mask).
+        (8 directions), wrapped around the edges unless ``wrap=False``.
 
         Parameters
         ----------
@@ -124,8 +130,15 @@ class GameOfLife(RasterCellularAutomaton):
         dict[str, np.ndarray]
             Updated ``"state"`` array (0 = dead, 1 = alive).
         """
-        state     = arrays[self.state_attr]
-        neighbors = self.backend.focal_sum_mask(state == 1)
+        state = arrays[self.state_attr]
+        alive = (state == 1).astype(np.int8)
+        if self.wrap:
+            neighbors = sum(
+                np.roll(alive, (dr, dc), axis=(0, 1))
+                for dr in (-1, 0, 1) for dc in (-1, 0, 1) if (dr, dc) != (0, 0)
+            )
+        else:
+            neighbors = self.backend.focal_sum_mask(alive == 1)
 
         survive   = (state == 1) & np.isin(neighbors, [2, 3])
         born      = (state == 0) & (neighbors == 3)

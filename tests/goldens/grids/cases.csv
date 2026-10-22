@@ -1,0 +1,13 @@
+case,model,arguments,seed,final_time,xdim,ydim,attribute
+life_glider,Life,pattern=glider,,100,30,30,state
+life_rpentomino,Life,pattern=rPentomino,,100,30,30,state
+life_random,Life,,1,100,30,30,state
+parity,Parity,,,500,50,50,state
+excitable,Excitable,,,500,50,50,state
+wolfram_30,Wolfram,rule=30,,55,111,56,state
+wolfram_90,Wolfram,rule=90,,55,111,56,state
+wolfram_110,Wolfram,rule=110,,55,111,56,state
+fire,Fire,,1,100,60,60,state
+anneal,Anneal,,1,100,80,80,state
+oscillator,Oscillator,,1,400,50,50,state
+parasit,Parasit,,1,500,50,50,state
