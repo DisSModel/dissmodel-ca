@@ -73,7 +73,7 @@ jupyter lab examples/notebooks/ca_game_of_life.ipynb
 ## ✅ Verification against TerraME
 
 The models were checked against TerraME 2.0.1 running the `ca` package
-([`terrame-goldens`](https://github.com/LambdaGeo/terrame-goldens) v0.1.0):
+([`terrame-goldens`](https://github.com/LambdaGeo/terrame-goldens) v0.1.0 ([10.5281/zenodo.23592970](https://doi.org/10.5281/zenodo.23592970))):
 
 - **Deterministic rules** (`GameOfLife` vector and raster, `Parity`,
   `Excitable`, `Wolfram` 30/90/110, `FireModel` vector and raster, `Anneal`,

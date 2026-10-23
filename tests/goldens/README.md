@@ -1,7 +1,8 @@
 # TerraME reference values for the ca models
 
 An extract of the `ca` suite of
-[`terrame-goldens`](https://github.com/LambdaGeo/terrame-goldens) v0.1.0:
+[`terrame-goldens`](https://github.com/LambdaGeo/terrame-goldens) v0.1.0
+(DOI [10.5281/zenodo.23592970](https://doi.org/10.5281/zenodo.23592970)):
 what TerraME 2.0.1 computed running the models of the
 [`ca`](https://github.com/TerraME/ca) package (commit `854a5c4`) with default
 parameters.
