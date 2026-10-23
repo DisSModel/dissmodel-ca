@@ -1,10 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] — 2026-10-22
 
 Six models now follow the TerraME `ca` package (https://github.com/terrame/ca),
-where they used to differ. The results of these models change; a new minor
-release (0.2.0) is suggested.
+where they used to differ, so their results change. The deterministic
+models match TerraME cell by cell at every step (checked against
+`terrame-goldens` v0.1.0).
 
 - `Parity`: the Von Neumann neighborhood wraps around the grid edges, as in
   TerraME (`wrap = true`); `setup(wrap=False)` keeps the bounded grid.
