@@ -13,8 +13,8 @@ authors:
   - family-names: "Zhao"
     given-names: "Samylli Kalei Silva"
     orcid: "https://orcid.org/0009-0009-6490-4459"
-version: 0.1.0
-date-released: "2026-10-08"
+version: 0.2.0
+date-released: "2026-10-22"
 license: MIT
 url: "https://github.com/DisSModel/dissmodel-ca"
 repository-code: "https://github.com/DisSModel/dissmodel-ca"
